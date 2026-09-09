@@ -1,0 +1,12 @@
+{
+  "name": "cmdc-hub",
+  "version": "1.0.0",
+  "description": "Command Code 全模型网关 - 单文件可执行版本",
+  "main": "cmdc-server.mjs",
+  "bin": "cmdc-server.mjs",
+  "pkg": {
+    "targets": ["node18-linux-x64"],
+    "outputPath": "dist",
+    "assets": []
+  }
+}

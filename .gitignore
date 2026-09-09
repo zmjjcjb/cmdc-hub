@@ -1,0 +1,11 @@
+# ZCode IDE 内部文件
+.zcode/
+
+# 嵌入的子仓库
+Antigravity-Manager/
+
+# Node 依赖
+node_modules/
+
+# 打包临时文件
+/tmp/

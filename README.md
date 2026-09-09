@@ -1,0 +1,97 @@
+# cmdc-hub
+
+Command Code 全模型网关 — 单文件可执行版。把 OpenAI 兼容请求转换为 Command Code 专有协议，零依赖、双击即跑、自动弹浏览器面板。
+
+![终端监控面板](docs/images/01-terminal.png)
+
+## 特性
+
+- **零依赖单文件**：打包成 45MB 的独立可执行文件，目标机器不需要装 Node.js
+- **启动即开浏览器**：双击运行后自动弹出 Dashboard 面板，无需手动打开网址
+- **全模型聚合**：40+ 款模型统一走 OpenAI `/v1/chat/completions` 协议
+- **首字延迟优化**：自管 keepAlive 长连接池 + 启动预热 + 空闲补预热，复用连接省 ~800ms 握手
+- **断流自愈**：未吐正文时内部重试（最多 3 次），已吐正文自动跨轮续传（最多 5 轮）
+- **实时 Dashboard**：终端日志、首字延迟、缓存命中率、思考/正文比、续传轮次全监控
+- **额度看板**：5 小时 / 周 / 月限额实时展示，全模型容量对比柱状图
+
+## 截图
+
+![Dashboard 概览](docs/images/02-dashboard.png)
+
+![实时请求日志](docs/images/03-logs.png)
+
+![模型列表与价格](docs/images/04-models.png)
+
+## 快速开始
+
+### 方式一：直接下载可执行文件（推荐）
+
+从 [Releases](https://github.com/zmjjcjb/cmdc-hub/releases) 下载对应平台的文件：
+
+**Linux:**
+```bash
+chmod +x cmdc-hub
+./cmdc-hub
+```
+
+**Windows:**
+```
+双击 cmdc-hub.exe
+```
+
+启动后浏览器自动打开 `http://127.0.0.1:8888`。
+
+### 方式二：从源码运行
+
+需要 Node.js ≥ 18：
+```bash
+git clone https://github.com/zmjjcjb/cmdc-hub.git
+cd cmdc-hub
+node cmdc-server.mjs
+```
+
+## 配置凭据
+
+服务从 `~/.commandcode/auth.json` 读取你的 Command Code 凭据：
+
+```json
+{
+  "apiKey": "你的 API Key",
+  "userId": "你的用户 ID",
+  "userName": "你的名字"
+}
+```
+
+把文件放到你的用户目录下即可，服务启动时自动加载。
+
+## 下游客户端配置
+
+把客户端（ZCode、Cursor 等）的 OpenAI 兼容接口指向本地：
+
+| 配置项 | 值 |
+|--------|-----|
+| Base URL | `http://127.0.0.1:8888/v1` |
+| API Key | `local-proxy`（任意值均可） |
+
+## 从源码打包
+
+```bash
+# 安装 pkg
+npm install pkg
+
+# Linux
+npx pkg . --targets node18-linux-x64 --output dist/cmdc-hub
+
+# Windows
+npx pkg . --targets node18-win-x64 --output dist/cmdc-hub.exe
+```
+
+## 技术细节
+
+| 项目 | 说明 |
+|------|------|
+| 源码 | 单文件 `cmdc-server.mjs`，约 2480 行 |
+| 依赖 | 零外部依赖，仅 Node.js 内置模块 |
+| 端口 | 默认 8888，被占用自动 +1 |
+| 协议 | 入站 OpenAI `/v1/chat/completions` → 出站 Command Code wire 协议 |
+| 流式 | 完整 SSE 双向转换，含工具调用、思考内容、断流续传 |
