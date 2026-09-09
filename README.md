@@ -22,6 +22,24 @@ Command Code 全模型网关 — 单文件可执行版。把 OpenAI 兼容请求
 
 ![模型列表与价格](docs/images/04-models.png)
 
+## 使用前提
+
+使用本软件前，需先购买 **Command Code Go 订阅**，且下载后至少登录一次：
+
+① 先安装 command code 程序：
+```bash
+npm i -g command-code
+```
+
+② 安装好之后登录一次：
+```bash
+cmdc
+```
+
+③ 登录完之后 `Ctrl+C` 退出 command code
+
+> 登录后凭据会自动保存到 `~/.commandcode/auth.json`，本网关服务依赖该文件获取你的账号信息。
+
 ## 快速开始
 
 ### 方式一：直接下载可执行文件（推荐）
