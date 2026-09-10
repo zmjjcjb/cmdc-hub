@@ -59,7 +59,39 @@ chmod +x cmdc-hub
 
 启动后浏览器自动打开 `http://127.0.0.1:8888`。
 
-### 方式二：从源码运行
+### 方式二：图形化启动（源码方式，推荐日常使用）
+
+`launcher/` 目录下提供了带图标的桌面快捷方式启动器，点一下就拉起服务并打开 Dashboard，不用每次开命令行。
+
+**Linux（GNOME / KDE 等）：**
+```bash
+# 图标已经自动生成，直接装快捷方式：
+cp ~/.local/share/applications/cmdc-hub.desktop ~/桌面/
+# 或者直接双击 launcher/start.sh 运行
+```
+
+**Windows：**
+```
+1. 进入 launcher 目录
+2. 双击 install_shortcut.bat 安装桌面和开始菜单快捷方式
+3. 以后双击桌面上的 cmdc-hub 图标即可启动
+```
+
+启动脚本是幂等的：服务没运行就拉起，已运行就只打开面板，不会重复启动。
+
+**文件说明：**
+
+| 文件 | 用途 |
+|------|------|
+| `launcher/start.sh` | Linux 启动脚本 |
+| `launcher/start.bat` | Windows 启动脚本 |
+| `launcher/stop.bat` | Windows 停止脚本 |
+| `launcher/install_shortcut.bat` | Windows 安装桌面/开始菜单快捷方式 |
+| `launcher/make_icon.py` | 图标生成脚本（PIL） |
+| `launcher/cmdc-hub.ico` | Windows 多尺寸图标 |
+| `launcher/cmdc-hub.png` | Linux 图标 |
+
+### 方式三：从源码直接运行
 
 需要 Node.js ≥ 18：
 ```bash
