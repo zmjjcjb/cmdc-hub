@@ -82,6 +82,10 @@ addTerminalLog('info', 'Command Code 反代网关初始化完成', `监听 127.0
 
 // 3. Command Code 官方全量模型库（42 款模型）
 const ALL_MODELS = [
+    // 价格说明：inputPrice/outputPrice/cacheReadPrice 单位均为 美元/百万 token
+    // 有峰谷价的取谷时（非高峰）价作为基准，峰时价在 note 中说明
+    // runs 为按典型场景（输入 20K / 输出 2K / 缓存命中率 80%）估算的 $10 可用次数
+
     // ── 免费模型 ──────────────────────────────────────
     {
         id: 'laguna-s-2.1',
@@ -90,6 +94,9 @@ const ALL_MODELS = [
         tag: '完全免费',
         note: '容量允许时免费 · 输入/输出/缓存全免',
         price: '免费',
+        inputPrice: 0,
+        outputPrice: 0,
+        cacheReadPrice: 0,
         runs: 999999,
         isFree: true,
         context: '256K',
@@ -105,6 +112,9 @@ const ALL_MODELS = [
         tag: '1M 上下文免费',
         note: '限时免费 · 百万上下文 · 0 积分消耗',
         price: '免费',
+        inputPrice: 0,
+        outputPrice: 0,
+        cacheReadPrice: 0,
         runs: 999999,
         isFree: true,
         context: '1M',
@@ -120,6 +130,9 @@ const ALL_MODELS = [
         tag: '每日 100 次免费',
         note: '零一万物 · 每日最多 100 次请求免费',
         price: '免费 (每日100次)',
+        inputPrice: 0,
+        outputPrice: 0,
+        cacheReadPrice: 0,
         runs: 999999,
         isFree: true,
         context: '262K',
@@ -129,15 +142,18 @@ const ALL_MODELS = [
         badge: '免费'
     },
 
-    // ── 超低价梯队 (< $0.10/M) ───────────────────────
+    // ── 超低价梯队 (< $0.10/M 输入) ──────────────────
     {
         id: 'qwen-3.7-flash',
         upstreamId: 'Qwen/Qwen3.7-Flash',
         category: '千问',
         tag: '全网最低价',
-        note: '$0.03 入 / $0.13 出 · 最便宜的付费模型',
+        note: '$0.03 入 / $0.13 出 / $0.006 缓存读 · 最便宜的付费模型',
         price: '$0.03 / 1M',
-        runs: 28000,
+        inputPrice: 0.03,
+        outputPrice: 0.13,
+        cacheReadPrice: 0.006,
+        runs: 0, // 运行时计算
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -149,9 +165,12 @@ const ALL_MODELS = [
         upstreamId: 'meta/muse-spark-1.3-contributor',
         category: 'Meta',
         tag: '极便宜',
-        note: '$0.10 入 / $0.20 出 · Contributor 版本【敏感内容勿用】',
+        note: '$0.10 入 / $0.20 出 / $0.002 缓存读 · Contributor 版【敏感内容勿用】',
         price: '$0.10 / 1M',
-        runs: 18000,
+        inputPrice: 0.10,
+        outputPrice: 0.20,
+        cacheReadPrice: 0.002,
+        runs: 0,
         context: '1M',
         maxTokens: '131072 必须填对',
         protocol: 'Chat Completions',
@@ -162,9 +181,12 @@ const ALL_MODELS = [
         upstreamId: 'meta/muse-spark-1.2-contributor',
         category: 'Meta',
         tag: '极便宜',
-        note: '$0.10 入 / $0.20 出 · 稳定版 Contributor【敏感内容勿用】',
+        note: '$0.10 入 / $0.20 出 / $0.002 缓存读 · 稳定版【敏感内容勿用】',
         price: '$0.10 / 1M',
-        runs: 18000,
+        inputPrice: 0.10,
+        outputPrice: 0.20,
+        cacheReadPrice: 0.002,
+        runs: 0,
         context: '1M',
         maxTokens: '131072 必须填对',
         protocol: 'Chat Completions',
@@ -175,9 +197,12 @@ const ALL_MODELS = [
         upstreamId: 'xiaomi/mimo-v2.5',
         category: '小米',
         tag: '98% 折扣',
-        note: '原价 $0.80/$4.00 · 限时 98% 折 $0.14 入 / $0.28 出',
+        note: '原价 $0.80/$4.00 · 98% 折 $0.14 入 / $0.28 出 / $0.0028 缓存读',
         price: '$0.14 / 1M (98%折扣)',
-        runs: 16000,
+        inputPrice: 0.14,
+        outputPrice: 0.28,
+        cacheReadPrice: 0.0028,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -189,24 +214,30 @@ const ALL_MODELS = [
         upstreamId: 'stepfun/step-3.5-flash',
         category: '阶跃星辰',
         tag: '高性价比',
-        note: '$0.10 入 / $0.30 出 · 1M 上下文',
+        note: '$0.10 入 / $0.30 出 / $0.02 缓存读 · 1M 上下文',
         price: '$0.10 / 1M',
-        runs: 16000,
+        inputPrice: 0.10,
+        outputPrice: 0.30,
+        cacheReadPrice: 0.02,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
         hasVision: false
     },
 
-    // ── 低价梯队 ($0.10 ~ $0.30/M) ───────────────────
+    // ── 低价梯队 ($0.10 ~ $0.30/M 输入) ──────────────
     {
         id: 'glm-5.3-flash',
         upstreamId: 'z-ai/glm-5.3-flash',
         category: 'GLM',
         tag: '毫秒极速',
-        note: '$0.15 入 / $0.50 出 · 极高性价比',
+        note: '$0.15 入 / $0.50 出 / $0.03 缓存读 · 极高性价比',
         price: '$0.15 / 1M',
-        runs: 7200,
+        inputPrice: 0.15,
+        outputPrice: 0.50,
+        cacheReadPrice: 0.03,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -218,9 +249,12 @@ const ALL_MODELS = [
         upstreamId: 'Qwen/Qwen3.8-Flash',
         category: '千问',
         tag: '主力性价比',
-        note: '$0.16 入 / $0.47 出 · 阿里千问极速版',
+        note: '$0.16 入 / $0.47 出 / $0.016 缓存读 · 阿里千问极速版',
         price: '$0.16 / 1M',
-        runs: 6800,
+        inputPrice: 0.16,
+        outputPrice: 0.47,
+        cacheReadPrice: 0.016,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -232,9 +266,12 @@ const ALL_MODELS = [
         upstreamId: 'deepseek/deepseek-v4.1-flash',
         category: 'DeepSeek',
         tag: '新一代极速',
-        note: '谷时 $0.15/$0.60 · 峰时 $0.30/$1.20',
+        note: '谷时 $0.15/$0.60 / $0.003 缓存读 · 峰时 $0.30/$1.20',
         price: '谷 $0.15 / 峰 $0.30',
-        runs: 7600,
+        inputPrice: 0.15,
+        outputPrice: 0.60,
+        cacheReadPrice: 0.003,
+        runs: 0,
         highlight: true,
         context: '1M',
         maxTokens: '200000 必须填对',
@@ -247,9 +284,12 @@ const ALL_MODELS = [
         upstreamId: 'deepseek/deepseek-v4-flash',
         category: 'DeepSeek',
         tag: '上一代极速',
-        note: '谷时 $0.15/$0.60 · 峰时 $0.30/$1.20',
+        note: '谷时 $0.15/$0.60 / $0.003 缓存读 · 峰时 $0.30/$1.20',
         price: '谷 $0.15 / 峰 $0.30',
-        runs: 7600,
+        inputPrice: 0.15,
+        outputPrice: 0.60,
+        cacheReadPrice: 0.003,
+        runs: 0,
         context: '1M',
         maxTokens: '200000 必须填对',
         protocol: 'Chat Completions',
@@ -260,9 +300,12 @@ const ALL_MODELS = [
         upstreamId: 'deepseek/deepseek-v4-flash-vision',
         category: 'DeepSeek',
         tag: '视觉实验版',
-        note: '谷时 $0.22/$0.66 · 峰时 $0.44/$1.32 · 多模态',
+        note: '谷时 $0.22/$0.66 / $0.007 缓存读 · 峰时 $0.44/$1.32 · 多模态',
         price: '谷 $0.22 / 峰 $0.44',
-        runs: 5500,
+        inputPrice: 0.22,
+        outputPrice: 0.66,
+        cacheReadPrice: 0.007,
+        runs: 0,
         context: '1M',
         maxTokens: '200000',
         protocol: 'Chat Completions',
@@ -273,9 +316,12 @@ const ALL_MODELS = [
         upstreamId: 'tencent/hy3',
         category: '腾讯',
         tag: '混元3',
-        note: '$0.14 入 / $0.58 出 · 262K 上下文',
+        note: '$0.14 入 / $0.58 出 / $0.035 缓存读 · 262K 上下文',
         price: '$0.14 / 1M',
-        runs: 7000,
+        inputPrice: 0.14,
+        outputPrice: 0.58,
+        cacheReadPrice: 0.035,
+        runs: 0,
         context: '262K',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -286,9 +332,12 @@ const ALL_MODELS = [
         upstreamId: 'minimax/minimax-m2.7',
         category: 'MiniMax',
         tag: '稳定版',
-        note: '$0.30 入 / $1.20 出 · MiniMax 稳定版',
+        note: '$0.30 入 / $1.20 出 / $0.06 缓存读 · MiniMax 稳定版',
         price: '$0.30 / 1M',
-        runs: 3200,
+        inputPrice: 0.30,
+        outputPrice: 1.20,
+        cacheReadPrice: 0.06,
+        runs: 0,
         context: '200K',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -299,9 +348,12 @@ const ALL_MODELS = [
         upstreamId: 'minimax/minimax-m3',
         category: 'MiniMax',
         tag: '5折大促',
-        note: '原价 $0.60/$2.40 · 5 折 $0.30 入 / $1.20 出',
+        note: '原价 $0.60/$2.40 · 5 折 $0.30 入 / $1.20 出 / $0.06 缓存读',
         price: '$0.30 / 1M (5折)',
-        runs: 3200,
+        inputPrice: 0.30,
+        outputPrice: 1.20,
+        cacheReadPrice: 0.06,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -313,9 +365,12 @@ const ALL_MODELS = [
         upstreamId: 'deepseek/deepseek-v4-flash-fast',
         category: 'DeepSeek',
         tag: '超速恒定价',
-        note: '恒定 $0.28 入 / $0.56 出 · 极低响应延迟',
+        note: '恒定 $0.28 入 / $0.56 出 / $0.07 缓存读 · 极低延迟',
         price: '$0.28 / 1M',
-        runs: 7000,
+        inputPrice: 0.28,
+        outputPrice: 0.56,
+        cacheReadPrice: 0.07,
+        runs: 0,
         context: '1M',
         maxTokens: '200000',
         protocol: 'Chat Completions',
@@ -326,9 +381,12 @@ const ALL_MODELS = [
         upstreamId: 'stepfun/step-3.7-flash',
         category: '阶跃星辰',
         tag: '新一代极速',
-        note: '$0.20 入 / $1.15 出 · 256K 上下文',
+        note: '$0.20 入 / $1.15 出 / $0.04 缓存读 · 256K 上下文',
         price: '$0.20 / 1M',
-        runs: 4200,
+        inputPrice: 0.20,
+        outputPrice: 1.15,
+        cacheReadPrice: 0.04,
+        runs: 0,
         context: '256K',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -339,24 +397,30 @@ const ALL_MODELS = [
         upstreamId: 'openai/gpt-5.6-luna',
         category: 'OpenAI',
         tag: '轻量特化',
-        note: '$0.20 入 / $1.20 出 · 所有计划可用',
+        note: '$0.20 入 / $1.20 出 / $0.02 缓存读 · 所有计划可用',
         price: '$0.20 / 1M',
-        runs: 4100,
+        inputPrice: 0.20,
+        outputPrice: 1.20,
+        cacheReadPrice: 0.02,
+        runs: 0,
         context: '1.1M',
         maxTokens: '65536',
         protocol: 'Chat Completions',
         hasVision: true
     },
 
-    // ── 中价梯队 ($0.30 ~ $1.00/M) ───────────────────
+    // ── 中价梯队 ($0.30 ~ $1.00/M 输入) ──────────────
     {
         id: 'qwen-3.7-plus',
         upstreamId: 'Qwen/Qwen3.7-Plus',
         category: '千问',
         tag: '增强版',
-        note: '$0.40 入 / $1.60 出 · 均衡逻辑能力',
+        note: '$0.40 入 / $1.60 出 / $0.08 缓存读 · 均衡逻辑能力',
         price: '$0.40 / 1M',
-        runs: 2400,
+        inputPrice: 0.40,
+        outputPrice: 1.60,
+        cacheReadPrice: 0.08,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -369,7 +433,10 @@ const ALL_MODELS = [
         tag: '精炼版',
         note: '$0.40 入 / $3.00 出 · 27B 高量化速度版',
         price: '$0.40 / 1M',
-        runs: 2000,
+        inputPrice: 0.40,
+        outputPrice: 3.00,
+        cacheReadPrice: 0.04, // 页面未明确列，按同系列估算
+        runs: 0,
         context: '262K',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -380,9 +447,12 @@ const ALL_MODELS = [
         upstreamId: 'xiaomi/mimo-v2.5-pro',
         category: '小米',
         tag: 'Pro 99%折扣',
-        note: '原价 $2.00/$6.00 · 限时 99% 折 $0.435 入 / $0.87 出',
+        note: '原价 $2.00/$6.00 · 99% 折 $0.435 入 / $0.87 出 / $0.0036 缓存读',
         price: '$0.435 / 1M (99%折扣)',
-        runs: 2200,
+        inputPrice: 0.435,
+        outputPrice: 0.87,
+        cacheReadPrice: 0.0036,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -394,9 +464,12 @@ const ALL_MODELS = [
         upstreamId: 'moonshotai/Kimi-K2.7-Code',
         category: 'Kimi',
         tag: '代码特化',
-        note: '$0.95 入 / $4.00 出 · 编程/Debug 特化',
+        note: '$0.95 入 / $4.00 出 / $0.19 缓存读 · 编程/Debug 特化',
         price: '$0.95 / 1M',
-        runs: 1000,
+        inputPrice: 0.95,
+        outputPrice: 4.00,
+        cacheReadPrice: 0.19,
+        runs: 0,
         context: '256K',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -408,9 +481,12 @@ const ALL_MODELS = [
         upstreamId: 'moonshotai/Kimi-K2.7-Code-HighSpeed',
         category: 'Kimi',
         tag: '代码高速版',
-        note: '$1.90 入 / $8.00 出 · 高速代码模型',
+        note: '$1.90 入 / $8.00 出 / $0.38 缓存读 · 高速代码模型',
         price: '$1.90 / 1M',
-        runs: 500,
+        inputPrice: 1.90,
+        outputPrice: 8.00,
+        cacheReadPrice: 0.38,
+        runs: 0,
         context: '262K',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -421,9 +497,12 @@ const ALL_MODELS = [
         upstreamId: 'moonshotai/Kimi-K2.6',
         category: 'Kimi',
         tag: '主力通用',
-        note: '$0.95 入 / $4.00 出 · 256K 上下文',
+        note: '$0.95 入 / $4.00 出 / $0.16 缓存读 · 256K 上下文',
         price: '$0.95 / 1M',
-        runs: 1000,
+        inputPrice: 0.95,
+        outputPrice: 4.00,
+        cacheReadPrice: 0.16,
+        runs: 0,
         context: '256K',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -434,9 +513,12 @@ const ALL_MODELS = [
         upstreamId: 'nvidia/nemotron-3-ultra',
         category: 'NVIDIA',
         tag: 'NVIDIA 超强',
-        note: '$0.60 入 / $2.40 出 · 1M 上下文',
+        note: '$0.60 入 / $2.40 出 / $0.12 缓存读 · 1M 上下文',
         price: '$0.60 / 1M',
-        runs: 1500,
+        inputPrice: 0.60,
+        outputPrice: 2.40,
+        cacheReadPrice: 0.12,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -447,24 +529,30 @@ const ALL_MODELS = [
         upstreamId: 'inkling/inkling-small',
         category: 'Inkling',
         tag: '小而快',
-        note: '$0.50 入 / $1.20 出 · 1M 上下文',
+        note: '$0.50 入 / $1.20 出 / $0.10 缓存读 · 1M 上下文',
         price: '$0.50 / 1M',
-        runs: 1600,
+        inputPrice: 0.50,
+        outputPrice: 1.20,
+        cacheReadPrice: 0.10,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
         hasVision: false
     },
 
-    // ── 高价梯队 ($1.00 ~ $3.00/M) ───────────────────
+    // ── 高价梯队 ($1.00 ~ $3.00/M 输入) ──────────────
     {
         id: 'deepseek-v4-pro',
         upstreamId: 'deepseek/deepseek-v4-pro',
         category: 'DeepSeek',
         tag: '深度推理',
-        note: '谷时 $0.66/$1.98 · 峰时 $1.32/$3.96',
+        note: '谷时 $0.66/$1.98 / $0.022 缓存读 · 峰时 $1.32/$3.96',
         price: '谷 $0.66 / 峰 $1.32',
-        runs: 1050,
+        inputPrice: 0.66,
+        outputPrice: 1.98,
+        cacheReadPrice: 0.022,
+        runs: 0,
         context: '1M',
         maxTokens: '200000',
         protocol: 'Chat Completions',
@@ -476,9 +564,12 @@ const ALL_MODELS = [
         upstreamId: 'z-ai/glm-5.2',
         category: 'GLM',
         tag: '高稳定',
-        note: '$1.40 入 / $4.40 出 · 稳定长思考',
+        note: '$1.40 入 / $4.40 出 / $0.26 缓存读 · 稳定长思考',
         price: '$1.40 / 1M',
-        runs: 620,
+        inputPrice: 1.40,
+        outputPrice: 4.40,
+        cacheReadPrice: 0.26,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -489,9 +580,12 @@ const ALL_MODELS = [
         upstreamId: 'z-ai/glm-5.2-fast',
         category: 'GLM',
         tag: '高速版',
-        note: '$3.00 入 / $10.25 出 · 高速高输出',
+        note: '$3.00 入 / $10.25 出 / $0.50 缓存读 · 高速高输出',
         price: '$3.00 / 1M',
-        runs: 200,
+        inputPrice: 3.00,
+        outputPrice: 10.25,
+        cacheReadPrice: 0.50,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -502,9 +596,12 @@ const ALL_MODELS = [
         upstreamId: 'z-ai/glm-5.3',
         category: 'GLM',
         tag: '最新旗舰',
-        note: '$1.40 入 / $4.40 出 · GLM 最新旗舰',
+        note: '$1.40 入 / $4.40 出 / $0.26 缓存读 · GLM 最新旗舰',
         price: '$1.40 / 1M',
-        runs: 620,
+        inputPrice: 1.40,
+        outputPrice: 4.40,
+        cacheReadPrice: 0.26,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -516,9 +613,12 @@ const ALL_MODELS = [
         upstreamId: 'inkling/inkling',
         category: 'Inkling',
         tag: '推理强',
-        note: '$1.00 入 / $4.05 出 · 256K 上下文',
+        note: '$1.00 入 / $4.05 出 / $0.17 缓存读 · 256K 上下文',
         price: '$1.00 / 1M',
-        runs: 750,
+        inputPrice: 1.00,
+        outputPrice: 4.05,
+        cacheReadPrice: 0.17,
+        runs: 0,
         context: '256K',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -529,9 +629,12 @@ const ALL_MODELS = [
         upstreamId: 'tencent/hy4-preview',
         category: '腾讯',
         tag: '混元4预览',
-        note: '$0.834 入 / $2.501 出 · 1M 上下文 · 预览版',
+        note: '$0.834 入 / $2.501 出 / $0.042 缓存读 · 预览版',
         price: '$0.834 / 1M',
-        runs: 900,
+        inputPrice: 0.834,
+        outputPrice: 2.501,
+        cacheReadPrice: 0.042,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -543,9 +646,12 @@ const ALL_MODELS = [
         upstreamId: 'Qwen/Qwen3.7-Max',
         category: '千问',
         tag: '上一代顶配',
-        note: '$2.50 入 / $7.50 出 · Qwen 3.7 顶配',
+        note: '$2.50 入 / $7.50 出 / $0.50 缓存读 · Qwen 3.7 顶配',
         price: '$2.50 / 1M',
-        runs: 250,
+        inputPrice: 2.50,
+        outputPrice: 7.50,
+        cacheReadPrice: 0.50,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -556,9 +662,12 @@ const ALL_MODELS = [
         upstreamId: 'Qwen/Qwen3.8-Max',
         category: '千问',
         tag: '千问顶配',
-        note: '$2.00 入 / $6.00 出 · 顶配超长代码逻辑',
+        note: '$2.00 入 / $6.00 出 / $0.25 缓存读 · 顶配超长代码逻辑',
         price: '$2.00 / 1M',
-        runs: 300,
+        inputPrice: 2.00,
+        outputPrice: 6.00,
+        cacheReadPrice: 0.25,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -570,24 +679,30 @@ const ALL_MODELS = [
         upstreamId: 'Qwen/Qwen3.8-Max-0902',
         category: '千问',
         tag: '最新旗舰',
-        note: '$2.00 入 / $6.00 出 · 0902 最新版',
+        note: '$2.00 入 / $6.00 出 / $0.25 缓存读 · 0902 最新版',
         price: '$2.00 / 1M',
-        runs: 300,
+        inputPrice: 2.00,
+        outputPrice: 6.00,
+        cacheReadPrice: 0.25,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
         hasVision: true
     },
 
-    // ── 顶级梯队 ($3.00+/M) ─────────────────────────
+    // ── 顶级梯队 ─────────────────────────────────────
     {
         id: 'grok-4.5',
         upstreamId: 'x-ai/grok-4.5',
         category: 'xAI',
         tag: 'Grok 旗舰',
-        note: '$2.00 入 / $6.00 出 · 500K 上下文 · 所有计划可用',
+        note: '$2.00 入 / $6.00 出 / $0.50 缓存读 · 所有计划可用',
         price: '$2.00 / 1M',
-        runs: 350,
+        inputPrice: 2.00,
+        outputPrice: 6.00,
+        cacheReadPrice: 0.50,
+        runs: 0,
         context: '500K',
         maxTokens: '65536',
         protocol: 'Chat Completions',
@@ -599,9 +714,12 @@ const ALL_MODELS = [
         upstreamId: 'moonshotai/Kimi-K3',
         category: 'Kimi',
         tag: '1M 超长上下文',
-        note: '$3.00 入 / $15.00 出 · 百万上下文最强逻辑',
+        note: '$3.00 入 / $15.00 出 / $0.30 缓存读 · 百万上下文最强逻辑',
         price: '$3.00 / 1M',
-        runs: 110,
+        inputPrice: 3.00,
+        outputPrice: 15.00,
+        cacheReadPrice: 0.30,
+        runs: 0,
         context: '1M',
         maxTokens: '131072',
         protocol: 'Chat Completions',
@@ -609,6 +727,41 @@ const ALL_MODELS = [
         badge: '1M Context'
     }
 ];
+
+// 2.1 单次请求成本 & 可用次数计算
+// 典型场景假设：输入 inputK 千 token，输出 outputK 千 token，
+// 输入部分 cacheHitRate 比例命中缓存（走缓存读价），其余走正常输入价。
+// 用于估算 $10 月包能跑多少次，以及柱状图的容量对比。
+function calcRequestCost(model, inputK, outputK, cacheHitRate) {
+    if (model.isFree || model.inputPrice === 0) return 0;
+    const inputTokens = inputK;     // 千 token
+    const cachedTokens = inputTokens * cacheHitRate;
+    const freshTokens = inputTokens * (1 - cacheHitRate);
+    const outputTokens = outputK;   // 千 token
+    // 价格是 美元/百万 token → 千 token 价 = 价 / 1000
+    const cost =
+        freshTokens * (model.inputPrice / 1000) +
+        cachedTokens * (model.cacheReadPrice / 1000) +
+        outputTokens * (model.outputPrice / 1000);
+    return cost;
+}
+
+function calcRunsForBudget(model, budgetUsd, inputK, outputK, cacheHitRate) {
+    if (model.isFree) return 999999;
+    const cost = calcRequestCost(model, inputK, outputK, cacheHitRate);
+    if (cost <= 0) return 999999;
+    return Math.floor(budgetUsd / cost);
+}
+
+// 默认典型场景：长对话 agent
+// 输入 20K（其中 80% 命中缓存），输出 2K
+const DEFAULT_SCENARIO = {
+    inputK: 20,
+    outputK: 2,
+    cacheHitRate: 0.8,
+    budgetUsd: 10  // Go 计划月包
+};
+
 
 // 3. 官方 tools 格式适配器：OpenAI tools -> Command Code wire tools
 // 官方定义（toWireTools）：{name, description, input_schema}
@@ -1168,6 +1321,28 @@ function renderDashboardHtml(activePort) {
   }
   .mode-btn.active { background: #3f3f46; color: #ffffff; }
 
+  .cache-switch {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #27272a;
+    padding: 3px;
+    border-radius: 8px;
+  }
+  .cache-label { font-size: 11px; color: #71717a; margin-right: 4px; }
+  .cache-btn {
+    border: none;
+    background: transparent;
+    color: #a1a1aa;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cache-btn.active { background: #1e3a2f; color: #34d399; }
+
   .chart-canvas {
     display: flex;
     position: relative;
@@ -1444,20 +1619,32 @@ function renderDashboardHtml(activePort) {
   }
   .m-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
   .m-col-price {
-    width: 140px;
+    width: 160px;
     text-align: center;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    gap: 3px;
   }
+  .price-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+    color: #334155;
+    padding: 0 8px;
+  }
+  .price-row .price-label { color: #94a3b8; font-size: 10px; }
+  .price-row .price-val { font-weight: 600; color: #0f172a; }
+  .price-row.cache .price-val { color: #10b981; }
   .price-tag {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     font-family: ui-monospace, monospace;
-    color: #0f172a;
+    color: #059669;
+    background: #ecfdf5;
+    padding: 2px 8px;
+    border-radius: 9999px;
   }
-  .price-tag.free { color: #059669; background: #ecfdf5; padding: 2px 8px; border-radius: 9999px; }
-  .price-tag.cheap { color: #2563eb; }
   .m-col-ctx { width: 65px; text-align: center; font-size: 12px; font-weight: 600; color: #334155; }
   
   /* 最大输出列增加复制 */
@@ -1663,10 +1850,16 @@ function renderDashboardHtml(activePort) {
           <svg class="icon" style="color:#eab308;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
           全模型额度可用次数对比大屏 (全量 40+ 款模型)
         </h3>
-        <p>假设全部额度仅投入该单一模型，预计可调用的总请求次数 (基于 Go 计划 $10/月包或实时剩余额度)</p>
+        <p>典型场景：输入 20K / 输出 2K ，切换缓存命中率看不同对话模式下可用次数（Go 计划 $10/月包或当前剩余额度）</p>
       </div>
       <div class="chart-toolbar">
         <input type="text" class="chart-search-input" placeholder="在图表中筛选模型..." oninput="filterChartModels(this.value)">
+        <div class="cache-switch">
+          <span class="cache-label">缓存命中：</span>
+          <button class="cache-btn" data-cache="0" onclick="switchCacheHit(0, this)">新对话 0%</button>
+          <button class="cache-btn active" data-cache="0.5" onclick="switchCacheHit(0.5, this)">中等 50%</button>
+          <button class="cache-btn" data-cache="0.8" onclick="switchCacheHit(0.8, this)">长对话 80%</button>
+        </div>
         <div class="mode-switch">
           <button class="mode-btn active" id="btn-mode-plan" onclick="switchCapMode('plan', this)">Go 计划月包 ($10)</button>
           <button class="mode-btn" id="btn-mode-cur" onclick="switchCapMode('current', this)">按当前剩余额度 (<span id="rem-credit-val">$2.62</span>)</button>
@@ -1732,7 +1925,7 @@ function renderDashboardHtml(activePort) {
   <!-- 表格头部 -->
   <div class="grid-header">
     <div style="flex:2;">模型名</div>
-    <div style="width:140px;text-align:center;">官方资费/百万Tokens</div>
+    <div style="width:160px;text-align:center;">官方资费 (每M tokens)</div>
     <div style="width:65px;text-align:center;">上下文</div>
     <div style="width:140px;text-align:center;">最大输出 (可一键复制)</div>
     <div style="width:120px;text-align:center;">协议</div>
@@ -1756,9 +1949,11 @@ function renderDashboardHtml(activePort) {
           </div>
         </div>
         <div class="m-col-price">
-          <span class="price-tag ${m.isFree ? 'free' : (m.price.includes('极便宜') || m.price.includes('极低') ? 'cheap' : '')}">
-            ${m.price}
-          </span>
+          ${m.isFree ? `<span class="price-tag">${m.price}</span>` : `
+            <div class="price-row"><span class="price-label">输入</span><span class="price-val">$${m.inputPrice}/M</span></div>
+            <div class="price-row"><span class="price-label">输出</span><span class="price-val">$${m.outputPrice}/M</span></div>
+            <div class="price-row cache"><span class="price-label">缓存读</span><span class="price-val">$${m.cacheReadPrice}/M</span></div>
+          `}
         </div>
         <div class="m-col-ctx">${m.context}</div>
         <div class="m-col-max">
@@ -1785,6 +1980,26 @@ function renderDashboardHtml(activePort) {
   const rawModelList = ${JSON.stringify(ALL_MODELS)};
   let currentCapMode = 'plan';
   let remainingCreditNum = 2.62;
+  let currentCacheHitRate = 0.8;  // 默认长对话场景
+  // 典型场景参数：输入 20K，输出 2K
+  const SCENARIO_INPUT_K = 20;
+  const SCENARIO_OUTPUT_K = 2;
+
+  // 计算单模型在当前缓存命中率下的可用次数
+  function calcRuns(model, budgetUsd) {
+    if (model.isFree || model.inputPrice === 0) return 999999;
+    const inputK = SCENARIO_INPUT_K;
+    const outputK = SCENARIO_OUTPUT_K;
+    const cachedK = inputK * currentCacheHitRate;
+    const freshK = inputK * (1 - currentCacheHitRate);
+    // 价格是 美元/百万 token → 千 token 价 = 价 / 1000
+    const cost =
+      freshK * (model.inputPrice / 1000) +
+      cachedK * (model.cacheReadPrice / 1000) +
+      outputK * (model.outputPrice / 1000);
+    if (cost <= 0) return 999999;
+    return Math.floor(budgetUsd / cost);
+  }
   let chartFilterKey = '';
   let activeCat = '全部';
   let searchWord = '';
@@ -1866,10 +2081,15 @@ function renderDashboardHtml(activePort) {
     const existingRows = container.querySelectorAll('.bar-row');
     existingRows.forEach(r => r.remove());
 
-    const scaleFactor = currentCapMode === 'plan' ? 1 : (remainingCreditNum / 10);
-    const maxReferenceRuns = 30100 * scaleFactor;
+    const budgetUsd = currentCapMode === 'plan' ? 10 : remainingCreditNum;
 
-    const sorted = [...rawModelList].sort((a, b) => a.runs - b.runs);
+    // 先算所有模型的 runs，取最大值做参照
+    const withRuns = rawModelList.map(m => ({
+      ...m,
+      _runs: calcRuns(m, budgetUsd)
+    }));
+    const sorted = [...withRuns].sort((a, b) => a._runs - b._runs);
+    const maxRuns = Math.max(...withRuns.filter(m => m._runs < 999999).map(m => m._runs), 1);
 
     sorted.forEach(item => {
       if (chartFilterKey) {
@@ -1879,24 +2099,24 @@ function renderDashboardHtml(activePort) {
         }
       }
 
-      const isInfinite = item.runs >= 999999;
-      const actualRuns = isInfinite ? '∞ 无限' : Math.round(item.runs * scaleFactor).toLocaleString();
-      
+      const runs = item._runs;
+      const isInfinite = runs >= 999999;
+      const actualRuns = isInfinite ? '∞ 无限' : runs.toLocaleString();
+
       let widthPct = 0;
       let barColor = '#64748b';
       if (isInfinite) {
         widthPct = 100;
         barColor = 'linear-gradient(90deg, #10b981 0%, #34d399 100%)';
       } else {
-        const num = item.runs * scaleFactor;
-        widthPct = Math.max(2.5, Math.min(100, Math.pow(num / maxReferenceRuns, 0.42) * 100));
+        widthPct = Math.max(2.5, Math.min(100, Math.pow(runs / maxRuns, 0.42) * 100));
         if (item.highlight) {
           barColor = '#eab308';
-        } else if (item.runs >= 20000) {
+        } else if (runs >= 20000) {
           barColor = '#10b981';
-        } else if (item.runs >= 4000) {
+        } else if (runs >= 4000) {
           barColor = '#cbd5e1';
-        } else if (item.runs >= 1000) {
+        } else if (runs >= 1000) {
           barColor = '#94a3b8';
         } else {
           barColor = '#475569';
@@ -1927,6 +2147,13 @@ function renderDashboardHtml(activePort) {
   function switchCapMode(mode, btn) {
     currentCapMode = mode;
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderCapacityChart();
+  }
+
+  function switchCacheHit(rate, btn) {
+    currentCacheHitRate = rate;
+    document.querySelectorAll('.cache-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     renderCapacityChart();
   }
